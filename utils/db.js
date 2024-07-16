@@ -1,54 +1,63 @@
 const { MongoClient } = require('mongodb');
-require('dotenv').config();
+const dotenv = require('dotenv');
 
+dotenv.config();
+
+const host = process.env.DB_HOST || 'localhost';
+const port = process.env.DB_PORT || 27017;
+const database = process.env.DB_DATABASE || 'files_manager';
+const uri = `mongodb://${host}:${port}/${database}`;
 
 class DBClient {
     constructor() {
-        const host = process.env.DB_HOST || 'localhost';
-        const port = process.env.DB_PORT || 27017;
-        const database = process.env.DB_PORT || 'files_manager';
+        this.client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
+        this.connect();
+    }
 
-        this.uri = `mongodb://${host}:${port}`;
-        this.client = new MongoClient(this.uri, { useNewUrlParser: true, useUnifiedTopology: true });
-
-        //connect to server
-        this.client.connect()
-            .then(() => {
-                console.log('Connected to Mongodb');
-                this.db = this.client.db(database);
-            })
-            .catch(err => {
-                console.error('Connection Failed', err);
-            });
+    async connect() {
+        try {
+            await this.client.connect();
+            console.log('Connected to MongoDB');
+            this.db = this.client.db(database);
+        } catch (err) {
+            console.error('Connection Failed', err);
+        }
     }
 
     isAlive() {
-        return !!this.client && this.client.isConnected();
+        return this.client && this.client.topology && this.client.topology.isConnected();
     }
-    
+
     async nbUsers() {
         try {
+            if (!this.isAlive()) throw new Error('Not connected to database');
             const collection = this.db.collection('users');
             const numberOfDocs = await collection.countDocuments();
             return numberOfDocs;
         } catch (err) {
-            console.error('Error counting docs', err);
+            console.error('Error counting documents in users collection', err);
             return 0;
         }
     }
 
     async nbFiles() {
         try {
-            const collection = this.db.collection('users');
-            const numberOfFiles = await collection.countFiles();
+            if (!this.isAlive()) throw new Error('Not connected to database');
+            const collection = this.db.collection('files');
+            const numberOfFiles = await collection.countDocuments();
             return numberOfFiles;
         } catch (err) {
-            console.error('Error counting files', err);
+            console.error('Error counting documents in files collection', err);
             return 0;
         }
     }
 }
 
-// create and export an instance of DBClient and dbClient
+// Create and export an instance of DBClient
 const dbClient = new DBClient();
 module.exports = dbClient;
+
+// Ensure unhandled promise rejections are logged
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Promise Rejection:', reason);
+});
