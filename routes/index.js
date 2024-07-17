@@ -11,6 +11,9 @@ router.get('/status', AppController.getStatus);
 // GET /stats endpoint
 router.get('/stats', AppController.getStats);
 
+// POST /users endpoint
+router.post('/users', UsersController.postNew);
+
 // GET /status endpoint
 router.get('/connect', AuthController.getConnect);
 
@@ -18,9 +21,6 @@ router.get('/connect', AuthController.getConnect);
 router.get('/disconnect', AuthController.getDisconnect);
 
 // GET /status endpoint
-router.get('/users/me', UserController.getMe);
-
-// POST /users endpoint
-router.post('/users', UsersController.postNew);
+router.get('/users/me', UsersController.getMe);
 
 export default router;
