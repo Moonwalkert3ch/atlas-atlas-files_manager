@@ -54,11 +54,11 @@ const UsersController = {
       const userId = await redisClient.get(`auth_${token}`);
 
       if (!userId) {
-        console.log(`Token ${token} is not associated with any user ID`);
+        // console.log(`Token ${token} is not associated with any user ID`);
         return res.status(401).json({ error: 'Unauthorized' });
       }
       // debugging
-      console.log(`Token ${token} is associated with user ID: ${userId}`);
+      // console.log(`Token ${token} is associated with user ID: ${userId}`);
 
       const user = await dbClient.client.db().collection('users').findOne({ _id: new ObjectId(userId) });
 
@@ -69,7 +69,7 @@ const UsersController = {
       return res.status(200).json({ id: user._id, email: user.email });
       // console.log(`found token: ${token} for userid: ${userId}, email:${email}`);
     } catch (error) {
-      console.error('Error retrieving user:', error);
+      // console.error('Error retrieving user:', error);
       return res.status(500).json({ error: 'Internal server error' });
     }
   }
