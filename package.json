@@ -1,0 +1,50 @@
+{
+  "name": "atlas-atlas-files_manager",
+  "version": "1.0.0",
+  "description": "This project is a summary of this back-end trimester: authentication, NodeJS, MongoDB, Redis, pagination and background processing.",
+  "main": "main1.js",
+  "scripts": {
+    "lint": "./node_modules/.bin/eslint",
+    "check-lint": "lint [0-9]*.js",
+    "start-server": "nodemon --exec babel-node --presets @babel/preset-env ./server.js",
+    "start-worker": "nodemon --exec babel-node --presets @babel/preset-env ./worker.js",
+    "dev": "nodemon --exec babel-node --presets @babel/preset-env",
+    "test": "./node_modules/.bin/mocha --require @babel/register --exit"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bull": "^4.15.1",
+    "chai-http": "^5.0.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "image-thumbnail": "^1.0.15",
+    "mime-types": "^2.1.35",
+    "mongodb": "^6.8.0",
+    "redis": "^4.6.15",
+    "sha1": "^1.1.1",
+    "uuid": "^10.0.0"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.24.8",
+    "@babel/core": "^7.24.9",
+    "@babel/node": "^7.24.8",
+    "@babel/preset-env": "^7.24.8",
+    "@babel/register": "^7.24.6",
+    "@types/sha1": "^1.1.5",
+    "@types/uuid": "^10.0.0",
+    "chai": "^5.1.1",
+    "chai-http": "^5.0.0",
+    "eslint": "^8.2.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.29.1",
+    "eslint-plugin-jest": "^28.6.0",
+    "glob": "^11.0.0",
+    "mkdirp": "^3.0.1",
+    "mocha": "^10.6.0",
+    "nodemon": "^3.1.4",
+    "request": "^2.88.0",
+    "rimraf": "^6.0.1",
+    "sinon": "^18.0.0"
+  }
+}
