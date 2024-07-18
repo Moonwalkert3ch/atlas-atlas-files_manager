@@ -30,6 +30,9 @@ const UsersController = {
       // Insert new user into the database
       const result = await usersCollection.insertOne({ email, password: hashedPassword });
 
+      // Log user creation
+      console.log(`New user created with ID: ${result.insertedId}`);
+
       // Return the new user with minimal information
       return res.status(201).json({ id: result.insertedId, email });
 
@@ -41,38 +44,33 @@ const UsersController = {
 
   // /users/me endpoint
   async getMe(req, res) {
-    const token = req.headers['X-Token'];
+    const token = req.headers['x-token'];
 
     if (!token) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
     try {
-      // Retrieve user ID from Redis
-      const key = `auth_${token}`;
-      const userId = await redisClient.get(key);
+      const userId = await redisClient.get(`auth_${token}`);
 
       if (!userId) {
-        console.log(`Token not found in Redis: ${token}`);
-        return res.status(401).json({ error: 'Unauthorized no userid redis' });
+        console.log(`Token ${token} is not associated with any user ID`);
+        return res.status(401).json({ error: 'Unauthorized' });
       }
+      // debugging
+      console.log(`Token ${token} is associated with user ID: ${userId}`);
 
-      console.log(`Retrieved userId from Redis: ${userId}`);
-
-      // Fetch user details from MongoDB
-      const usersCollection = dbClient.client.db().collection('users');
-      const user = await usersCollection.findOne({ _id: ObjectId(userId) });
+      const user = await dbClient.client.db().collection('users').findOne({ _id: new ObjectId(userId) });
 
       if (!user) {
-        console.log(`User not found in MongoDB for userId: ${userId}`);
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      // Return user information
-      return res.status(200).json({ id: user._id.toString(), email: user.email });
+      return res.status(200).json({ id: user._id, email: user.email });
+      // console.log(`found token: ${token} for userid: ${userId}, email:${email}`);
     } catch (error) {
       console.error('Error retrieving user:', error);
-      return res.status(500).json({ error: 'Internal Server Error' });
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 };

@@ -1,71 +1,61 @@
+import { v4 as uuidv4 } from 'uuid';
+import sha1 from 'sha1';
 import redisClient from '../utils/redis';
 import dbClient from '../utils/db';
-import{ v4 as uuidv4 } from 'uuid';
-
-const sha1 = require('sha1');
 
 class AuthController {
   static async getConnect(req, res) {
+    const authHeader = req.headers.authorization || '';
+    const [type, credentials] = authHeader.split(' ');
+
+    if (type !== 'Basic' || !credentials) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const [email, password] = Buffer.from(credentials, 'base64').toString().split(':');
+    const hashedPassword = sha1(password);
+
     try {
-      const authHeader = req.headers.authorization;
-      if (!authHeader || !authHeader.startsWith('Basic ')) {
-        return res.status(401).json({ error: 'Unauthorized' });
-      }
-
-      const base64Auth = authHeader.split(' ')[1];
-      const credentials = Buffer.from(base64Auth, 'base64').toString('ascii');
-      const [email, password] = credentials.split(':');
-
-      const db = await dbClient.connect();
-      const usersCollection = dbClient.client.db().collection('users');
-      const user = await usersCollection.findOne({
-        email,
-        password: sha1(password)
-      });
-
-      if (!dbClient.isAlive()) {
-        console.error('MongoDB connection is not alive');
-        return res.status(500).json({ error: 'MongoDB connection error' });
-      }
+      const user = await dbClient.client.db().collection('users').findOne({ email, password: hashedPassword });
 
       if (!user) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      const token = uuidv4(); // generates the token
-      const key = `auth_${token}`;
-      const duration = 24 * 60 * 60; // 24 hours
+      const token = uuidv4();
+      // console.log(`generated token:${token}`);
+      await redisClient.set(`auth_${token}`, user._id.toString(), 86400);
 
-      await redisClient.set(key, user._id.toString(), duration);
-      console.log(`Token stored in Redis: ${token}`);
+      // Debugging statement
+      console.log(`User ID ${user._id} associated with token ${token}`);
+
       return res.status(200).json({ token });
     } catch (error) {
       console.error('Error in getConnect:', error);
-      return res.status(500).json({ error: 'Internal Server Error' });
+      return res.status(500).json({ error: 'Internal server error' });
     }
   }
 
   static async getDisconnect(req, res) {
-    try {
-      const token = req.headers['x-token'];
-      if (!token) {
-        return res.status(401).json({ error: 'Unauthorized' });
-      }
+    const token = req.headers['x-token'];
 
-      const key = `auth_${token}`;
-      const userId = await redisClient.get(key);
+    if (!token) {
+      return res.status(401).json({ error: 'Unauthorized cant find with token' });
+    }
 
-      if (!userId) {
-        return res.status(401).json({ error: 'Unauthorized' });
-      }
+    const userId = await redisClient.get(`auth_${token}`);
 
-      await redisClient.del(key);
-      return res.status(204).end();
-    } catch (error) {
-      console.error('Error in getDisconnect:', error);
-      return res.status(500).json({ error: 'Internal Server Error' });
-    };
-  };
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized cannot find user by id' });
+    }
+
+    await redisClient.del(`auth_${token}`);
+
+    // Debugging statement
+    console.log(`Token ${token} deleted`);
+
+    return res.status(204).send();
+  }
 }
 
 export default AuthController;
