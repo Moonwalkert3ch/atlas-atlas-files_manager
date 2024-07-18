@@ -1,63 +1,56 @@
-const { MongoClient } = require('mongodb');
-const dotenv = require('dotenv');
-
-dotenv.config();
-
-const host = process.env.DB_HOST || 'localhost';
-const port = process.env.DB_PORT || 27017;
-const database = process.env.DB_DATABASE || 'files_manager';
-const uri = `mongodb://${host}:${port}/${database}`;
+import { MongoClient } from 'mongodb';
 
 class DBClient {
-    constructor() {
-        this.client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true });
-        this.connect();
-    }
+  constructor() {
+    const {
+      DB_HOST = 'localhost',
+      DB_PORT = 27017,
+      DB_DATABASE = 'files_manager',
+    } = process.env;
 
-    async connect() {
-        try {
-            await this.client.connect();
-            console.log('Connected to MongoDB');
-            this.db = this.client.db(database);
-        } catch (err) {
-            console.error('Connection Failed', err);
-        }
-    }
+    const url = `mongodb://${DB_HOST}:${DB_PORT}/${DB_DATABASE}`;
 
-    isAlive() {
-        return this.client && this.client.topology && this.client.topology.isConnected();
-    }
+    this.client = new MongoClient(url, { useUnifiedTopology: true });
 
-    async nbUsers() {
-        try {
-            if (!this.isAlive()) throw new Error('Not connected to database');
-            const collection = this.db.collection('users');
-            const numberOfDocs = await collection.countDocuments();
-            return numberOfDocs;
-        } catch (err) {
-            console.error('Error counting documents in users collection', err);
-            return 0;
-        }
-    }
+    this.connect();
+  }
 
-    async nbFiles() {
-        try {
-            if (!this.isAlive()) throw new Error('Not connected to database');
-            const collection = this.db.collection('files');
-            const numberOfFiles = await collection.countDocuments();
-            return numberOfFiles;
-        } catch (err) {
-            console.error('Error counting documents in files collection', err);
-            return 0;
-        }
+  async connect() {
+    try {
+      await this.client.connect();
+      console.log('MongoDB connected successfully');
+    } catch (err) {
+      console.error(`MongoDB connection error: ${err}`);
+      // Optionally, implement retry logic here
     }
+  }
+
+  isAlive() {
+    return this.client.topology && this.client.topology.isConnected();
+  }
+
+  async nbUsers() {
+    try {
+      const usersCollection = this.client.db().collection('users');
+      const count = await usersCollection.countDocuments();
+      return count;
+    } catch (error) {
+      console.error('Error counting users:', error);
+      throw error; // Ensure errors are propagated
+    }
+  }
+
+  async nbFiles() {
+    try {
+      const filesCollection = this.client.db().collection('files');
+      const count = await filesCollection.countDocuments();
+      return count;
+    } catch (error) {
+      console.error('Error counting files:', error);
+      throw error; // Ensure errors are propagated
+    }
+  }
 }
 
-// Create and export an instance of DBClient
 const dbClient = new DBClient();
-module.exports = dbClient;
-
-// Ensure unhandled promise rejections are logged
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('Unhandled Promise Rejection:', reason);
-});
+export default dbClient;
